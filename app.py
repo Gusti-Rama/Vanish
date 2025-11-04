@@ -2,8 +2,6 @@ import streamlit as st
 from page import Login, Register, Chat
 
 st.set_page_config(page_title="Vanish")
-st.title("Vanish")
-st.text("Vanish is a secure messaging app that allows you to send and receive messages securely.")
 
 # Hide sidebar when not logged in
 if 'sudah_login' not in st.session_state:
@@ -13,7 +11,7 @@ if st.session_state['sudah_login']:
     # Show sidebar only when logged in
     username = st.session_state['username']
     st.sidebar.success(f"Hai, {username}")
-    page = st.sidebar.radio("Go To", ["Text", "Steganography", "File"])
+    page = st.sidebar.radio("Go To", ["Chat"])
     if st.sidebar.button("Logout"):
         st.session_state['sudah_login'] = False
         st.rerun()
@@ -22,6 +20,9 @@ if st.session_state['sudah_login']:
 else:
     # No sidebar when not logged in - show tabs instead
     st.markdown("<style> section[data-testid='stSidebar'] { display: none; } </style>", unsafe_allow_html=True)
+    
+    st.title("Vanish")
+    st.text("Vanish is a secure messaging app that allows you to send and receive messages securely.")
     
     tab1, tab2 = st.tabs(["🔐 Login", "📝 Register"])
     
