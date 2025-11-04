@@ -4,7 +4,7 @@ import hashlib
 import os
 
 def register():
-    st.title("Register")
+    st.title("📝 Register")
     username = st.text_input("Username", key="register_username")
     password = st.text_input("Password", type="password", key="register_password")
     re_password = st.text_input("Re-enter Password", type="password", key="register_re_password")
