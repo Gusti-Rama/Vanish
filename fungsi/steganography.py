@@ -1,76 +1,69 @@
 from PIL import Image
 import numpy as np
 
-def to_binary(data):
-    """Convert data to binary format"""
-    if isinstance(data, str):
-        return ''.join([format(ord(i), "08b") for i in data])
-    elif isinstance(data, bytes):
-        return ''.join([format(i, "08b") for i in data])
-    elif isinstance(data, np.ndarray):
-        return [format(i, "08b") for i in data]
-    elif isinstance(data, int) or isinstance(data, np.uint8):
-        return format(data, "08b")
-    else:
-        raise TypeError("Type not supported.")
+def genData(data):
+    return [format(ord(i), '08b') for i in data]
 
-def encode_image(image_path, secret_data, output_path):
-    """Encode secret data into image using LSB steganography"""
-    # Read the image
-    image = Image.open(image_path)
-    image_array = np.array(image)
+def embed_msg(image_path, output_path, message):
+    img = Image.open(image_path)
+    img = img.convert('RGB')
+    pixels = np.array(img)
+    h, w, _ = pixels.shape
+    flat_pixels = pixels.reshape(-1, 3)
     
-    # Check if the image can hold the data
-    n_bytes = image_array.shape[0] * image_array.shape[1] * 3 // 8
-    if len(secret_data) > n_bytes:
-        raise ValueError("Error: Insufficient bytes, need bigger image or less data!")
+    if not message:
+        raise ValueError("Message cannot be empty.")
+    
+    data_bits = ''.join(genData(message + '###'))
+    bit_idx = 0
+    total_bits = len(data_bits)
 
-    # Add stopping criteria
-    secret_data += "====="
-    
-    # Convert data to binary
-    binary_secret_data = to_binary(secret_data)
-    data_len = len(binary_secret_data)
-    
-    # Modify pixels
-    data_index = 0
-    for i in range(image_array.shape[0]):
-        for j in range(image_array.shape[1]):
-            # Modify RGB values
-            for k in range(3):
-                if data_index < data_len:
-                    # Get the binary value of the pixel
-                    binary_pixel = to_binary(image_array[i][j][k])
-                    # Replace the least significant bit
-                    binary_pixel = binary_pixel[:-1] + binary_secret_data[data_index]
-                    # Update the pixel value
-                    image_array[i][j][k] = int(binary_pixel, 2)
-                    data_index += 1
+    # Compute gradient magnitude to find "complex" regions
+    gray = np.dot(pixels[..., :3], [0.299, 0.587, 0.114])
+    gx, gy = np.gradient(gray)
+    gradient_mag = np.sqrt(gx**2 + gy**2)
+    grad_flat = gradient_mag.flatten()
 
-    # Save the modified image
-    encoded_image = Image.fromarray(image_array)
-    encoded_image.save(output_path)
-    return True
+    # Normalize and create mask for complex pixels
+    threshold = np.percentile(grad_flat, 60)  # top 40% = embed area
+    embed_indices = np.where(grad_flat >= threshold)[0]
 
-def decode_image(image_path):
-    """Decode secret data from image using LSB steganography"""
-    # Read the image
-    image = Image.open(image_path)
-    image_array = np.array(image)
-    
-    binary_data = ""
-    # Extract LSB from each pixel
-    for i in range(image_array.shape[0]):
-        for j in range(image_array.shape[1]):
-            for k in range(3):
-                binary_data += to_binary(image_array[i][j][k])[-1]
-    
-    # Convert binary to string
-    all_bytes = [binary_data[i: i+8] for i in range(0, len(binary_data), 8)]
-    decoded_data = ""
-    for byte in all_bytes:
-        decoded_data += chr(int(byte, 2))
-        if decoded_data[-5:] == "=====":
-            return decoded_data[:-5]
-    
-    return decoded_data
+    # Shuffle indices (optional for extra stealth)
+    # np.random.seed(42)
+    # np.random.shuffle(embed_indices)
+
+    for idx in embed_indices:
+        if bit_idx >= total_bits:
+            break
+        for channel in range(3):
+            if bit_idx >= total_bits:
+                break
+            val = flat_pixels[idx][channel]
+            bit = int(data_bits[bit_idx])
+            flat_pixels[idx][channel] = (val & ~1) | bit
+            bit_idx += 1
+
+    if bit_idx < total_bits:
+        raise ValueError("Message too long for this image!")
+
+    new_pixels = flat_pixels.reshape(h, w, 3)
+    new_img = Image.fromarray(new_pixels.astype(np.uint8))
+    new_img.save(output_path)
+    return output_path
+
+
+def extract_msg(image_path):
+    img = Image.open(image_path)
+    img = img.convert('RGB')
+    pixels = np.array(img)
+    flat_pixels = pixels.reshape(-1, 3)
+    bits = ''
+    for r, g, b in flat_pixels:
+        bits += str(r & 1)
+        bits += str(g & 1)
+        bits += str(b & 1)
+
+    chars = [bits[i:i+8] for i in range(0, len(bits), 8)]
+    decoded = ''.join([chr(int(c, 2)) for c in chars])
+    end = decoded.find('###')
+    return decoded[:end] if end != -1 else decoded
