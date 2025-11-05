@@ -29,29 +29,18 @@ PUBLIC_KEY, PRIVATE_KEY = rsa_generate_keys()
 
 
 def rsa_encrypt(message):
-    """
-    Mengenkripsi pesan menggunakan kunci publik yang sudah 
-    didefinisikan di file ini.
-    """
-    e, n = PUBLIC_KEY # Ambil kunci yang sudah didefinisikan
+    e, n = PUBLIC_KEY # Ambil kunci yang sudah fix
     
-    # Enkripsi setiap karakter menjadi angka menggunakan RSA
     encrypted = [pow(ord(char), e, n) for char in message]
     return encrypted
 
 def rsa_decrypt(encrypted):
-    """
-    Mendekripsi pesan menggunakan kunci privat yang sudah
-    didefinisikan di file ini.
-    """
-    d, n = PRIVATE_KEY # Ambil kunci yang sudah didefinisikan
-    
+    d, n = PRIVATE_KEY # Ambil kunci yang sudah fix
+
     if isinstance(encrypted, str):
         encrypted_list = encrypted.split()
     else:
-        # Jika input sudah berupa list, langsung gunakan
         encrypted_list = encrypted
     
-    # Dekripsi setiap angka kembali menjadi karakter
     decrypted = ''.join(chr(pow(int(char), d, n)) for char in encrypted_list)
     return decrypted

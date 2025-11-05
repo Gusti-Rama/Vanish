@@ -1,11 +1,9 @@
 from PIL import Image
 import numpy as np
 
-
 # DELIMITER teks (###) atau gambar (###IMG###)
 DELIMITER_BYTES = b"###IMG###"
 
-# --- FUNGSI LAMA (TIDAK BERUBAH) ---
 def to_binary(data):
     """Konversi data string ke biner."""
     if isinstance(data, str):
@@ -16,18 +14,17 @@ def to_binary(data):
 def _get_adaptive_indices(image, threshold_percentile):
     """
     Fungsi helper untuk Adaptive LSB.
-    Menganalisis gambar dan mengembalikan daftar indeks piksel 
-    yang "kompleks" (aman) untuk disisipi data.
+    analisis gambar trs return daftar index pixel yang kompleks untuk dimasukin data.
     """
     img_rgb = image.convert('RGB')
     
-    # Paksa LSB (bit terakhir) menjadi 0 sebelum analisis.
+    # Paksa last bit jadi 0 sebelum analisis.
     pixels = np.array(img_rgb) & 254
     
-    # Konversi ke grayscale untuk analisis kompleksitas
+    # convert ke grayscale buat analisis komplekstas
     gray = np.dot(pixels[...,:3], [0.299, 0.587, 0.114])
     
-    # Hitung gradien (ukuran kompleksitas)
+    # hitung gradien (ukuran kompleksitas)
     gx, gy = np.gradient(gray)
     gradient_mag = np.sqrt(gx**2 + gy**2)
     grad_flat = gradient_mag.flatten()
@@ -43,10 +40,6 @@ def _get_adaptive_indices(image, threshold_percentile):
     return embed_indices, np.array(img_rgb).shape
 
 def embed_msg(image, secret_message, threshold_percentile):
-    """
-    Menyembunyikan pesan rahasia (TEKS) ke dalam gambar menggunakan Adaptive LSB.
-    (FUNGSI ASLI - TIDAK BERUBAH)
-    """
     img_rgb = image.convert('RGB')
     pixels = np.array(img_rgb)
     flat_pixels = pixels.reshape(-1, 3)
@@ -66,7 +59,7 @@ def embed_msg(image, secret_message, threshold_percentile):
     if data_len > total_capacity_bits:
         raise ValueError(f"Error: Pesan terlalu panjang. (Kapasitas: {total_capacity_bits} bit, Pesan: {data_len} bit). Coba turunkan Threshold.")
 
-    # Sisipkan data
+    # masukin data
     for idx in embed_indices:
         if data_index >= data_len:
             break
@@ -83,16 +76,11 @@ def embed_msg(image, secret_message, threshold_percentile):
             else:
                 break
     
-    # Kembalikan gambar baru
     new_pixels = flat_pixels.reshape(shape)
     return Image.fromarray(new_pixels.astype(np.uint8))
 
 
 def extract_msg(image, threshold_percentile):
-    """
-    Mengekstrak pesan rahasia (TEKS) dari gambar menggunakan Adaptive LSB.
-    (FUNGSI ASLI - TIDAK BERUBAH)
-    """
     img_rgb = image.convert('RGB')
     
     try:
@@ -126,16 +114,12 @@ def extract_msg(image, threshold_percentile):
 
     return ""
 
-
-# --- FUNGSI BARU UNTUK GAMBAR-DALAM-GAMBAR ---
-
 def bytes_to_binary_string(data_bytes):
-    """Konversi data bytes mentah ke string biner ('010101...')."""
+    """Konversi data bytes mentah ke string biner"""
     return ''.join(format(byte, '08b') for byte in data_bytes)
 
 def binary_string_to_bytes(binary_string):
-    """Konversi string biner ('010101...') kembali ke bytes."""
-    # Pastikan panjangnya kelipatan 8
+    """Konversi string biner balik ke bytes."""
     if len(binary_string) % 8 != 0:
         binary_string = binary_string[:-(len(binary_string) % 8)]
     
@@ -147,10 +131,6 @@ def binary_string_to_bytes(binary_string):
     return bytes(byte_list)
 
 def embed_bytes(image, secret_bytes, threshold_percentile):
-    """
-    Menyembunyikan data BYTES (misal: gambar) ke dalam gambar 
-    menggunakan Adaptive LSB.
-    """
     img_rgb = image.convert('RGB')
     pixels = np.array(img_rgb)
     flat_pixels = pixels.reshape(-1, 3)
@@ -171,7 +151,7 @@ def embed_bytes(image, secret_bytes, threshold_percentile):
     if data_len > total_capacity_bits:
         raise ValueError(f"Error: Gambar rahasia terlalu besar. (Kapasitas: {total_capacity_bits} bit, Data: {data_len} bit). Coba turunkan Threshold atau gunakan gambar sampul lebih besar.")
 
-    # Sisipkan data (logika sama persis dengan embed_msg)
+    # masukin data (logika sama persis sama yg buat teks)
     for idx in embed_indices:
         if data_index >= data_len:
             break
@@ -188,16 +168,11 @@ def embed_bytes(image, secret_bytes, threshold_percentile):
             else:
                 break
     
-    # Kembalikan gambar baru
     new_pixels = flat_pixels.reshape(shape)
     return Image.fromarray(new_pixels.astype(np.uint8))
 
 
 def extract_bytes(image, threshold_percentile):
-    """
-    Mengekstrak data BYTES (gambar) dari gambar 
-    menggunakan Adaptive LSB.
-    """
     img_rgb = image.convert('RGB')
     
     try:
@@ -218,17 +193,14 @@ def extract_bytes(image, threshold_percentile):
         for channel in range(3):
             binary_data += str(pixel[channel] & 1)
             
-            # Jika delimiter ditemukan
             if binary_data.endswith(binary_delimiter):
-                # Ambil data sebelum delimiter
                 binary_data_without_delimiter = binary_data[:-len(binary_delimiter)]
                 
-                # Konversi string biner kembali ke bytes
                 try:
                     decoded_bytes = binary_string_to_bytes(binary_data_without_delimiter)
                     return decoded_bytes
                 except Exception as e:
                     print(f"Error saat konversi biner ke bytes: {e}")
-                    return None # Gagal konversi
+                    return None
 
-    return None # Tidak ditemukan
+    return None
