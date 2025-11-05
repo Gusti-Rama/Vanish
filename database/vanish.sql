@@ -16,14 +16,14 @@
 
 
 -- Dumping database structure for vanish
-CREATE DATABASE IF NOT EXISTS `if0_40343494_vanish` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
-USE `if0_40343494_vanish`;
+CREATE DATABASE IF NOT EXISTS `sql12806240` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
+USE `sql12806240`;
 
 -- Dumping structure for table vanish.user
--- This table MUST be created first because 'file' and 'text' depend on it.
+-- PERBAIKAN: Mengubah varchar(255) menjadi varchar(191) untuk mengatasi error #1071
 CREATE TABLE IF NOT EXISTS `user` (
   `id_user` int NOT NULL AUTO_INCREMENT,
-  `username` varchar(255) DEFAULT NULL,
+  `username` varchar(191) DEFAULT NULL,  -- <-- DIUBAH DARI 255
   `password` binary(32) NOT NULL,
   `salt` binary(16) NOT NULL,
   PRIMARY KEY (`id_user`) USING BTREE,
