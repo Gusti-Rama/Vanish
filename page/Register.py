@@ -11,27 +11,26 @@ def register():
 
     if st.button("Register", key="register_button"):
         if not username or not password or not re_password:
-            st.error("Username and password cannot be empty.")
+            st.error("Username dan password tidak boleh kosong.")
             return
         if password != re_password:
-            st.error("Passwords do not match.")
+            st.error("Password tidak cocok.")
             return
 
         query = conn.run_query("SELECT * FROM user WHERE username = %s;", (username,), fetch=True)
         if query is not None and not query.empty:
-            st.error("Username already exists.")
+            st.error("Username sudah terdaftar.")
         else:
             salt = os.urandom(16)
             hashed_password = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
 
-            success = conn.run_query(  # <-- Tangkap hasilnya
+            success = conn.run_query( 
                 "INSERT INTO user (username, password, salt) VALUES (%s, %s, %s);",
                 (username, hashed_password, salt),
                 fetch=False
             )
             
-            # --- PERUBAHAN: Periksa apakah 'success' itu True ---
             if success:
-                st.success("Registration successful.")
+                st.success("Register berhasil.")
             else:
-                st.error("Registration failed. Please try again or contact support.")
+                st.error("Register gagal. Silahkan coba lagi.")   

@@ -3,11 +3,9 @@ import koneksi as conn
 import pandas as pd
 from fungsi import file_encrypt 
 from page.chat import get_user_id 
-from fungsi import db_encrypt # --- PERUBAHAN BARU ---
+from fungsi import db_encrypt
 
-def file_page():
-    """Menampilkan halaman untuk enkripsi dan dekripsi file (Brankas File)"""
-    
+def file_page():    
     current_username = st.session_state.get('username')
     if not current_username:
         st.error("Silakan login terlebih dahulu!")
@@ -27,7 +25,7 @@ def file_page():
         st.header("Kirim File Aman")
         
         try:
-            # Kita masih perlu daftar user untuk validasi
+            # Kita masih perlu daftar user buat validasi
             users_df = conn.run_query(
                 "SELECT id_user, username FROM user WHERE id_user != %s",
                 (current_user_id,),
@@ -37,17 +35,16 @@ def file_page():
                 st.warning("Tidak ada pengguna lain untuk dikirimi file.")
                 return
             
-            # user_list digunakan untuk mencari ID nanti
+            # user_list buat nyari ID nanti
             user_list = users_df.set_index('id_user')['username'].to_dict()
             
-            # --- PERUBAHAN DI SINI: dari selectbox ke text_input ---
             receiver_username_input = st.text_input(
                 "Pilih Penerima:",
                 placeholder="Masukkan username penerima..."
             )
-            # --- AKHIR PERUBAHAN ---
 
             uploaded_file = st.file_uploader("Pilih file yang akan dienkripsi:")
+            st.info("Batas ukuran file 16MB")
             
             encryption_key = st.text_input(
                 "Buat Kunci Enkripsi (Password):", 
@@ -58,10 +55,8 @@ def file_page():
 
             if st.button("Enkripsi & Kirim File", use_container_width=True):
                 
-                # --- PERUBAHAN DI SINI: Pindahkan validasi ID ke dalam tombol ---
                 receiver_username = receiver_username_input.strip()
                 receiver_id = next((uid for uid, uname in user_list.items() if uname == receiver_username), None)
-                # --- AKHIR PERUBAHAN ---
 
                 if receiver_id and uploaded_file and encryption_key:
                     
@@ -71,10 +66,10 @@ def file_page():
                         with st.spinner("Membaca file dan mengenkripsi..."):
                             try:
                                 file_bytes = uploaded_file.getvalue()
-                                # 1. Enkripsi Blowfish (App-level)
+                                # blowfish
                                 encrypted_blowfish_bytes = file_encrypt.encrypt_bytes(file_bytes, encryption_key)
                                 
-                                # 2. Enkripsi ChaCha20 (DB-level) untuk semua data
+                                # enkrip DB (Chacha20)
                                 encrypted_db_payload = db_encrypt.encrypt_db_data(encrypted_blowfish_bytes)
                                 encrypted_file_name = db_encrypt.encrypt_db_string(uploaded_file.name)
                                 encrypted_file_type = db_encrypt.encrypt_db_string(uploaded_file.type)
@@ -116,7 +111,6 @@ def file_page():
                             except Exception as e:
                                 st.error(f"Terjadi kesalahan saat enkripsi: {e}")
                 else:
-                    # Pesan error jika salah satu field kosong
                     if not receiver_id:
                         st.error(f"Username '{receiver_username}' tidak ditemukan atau Anda belum mengisi nama penerima.")
                     elif not uploaded_file:

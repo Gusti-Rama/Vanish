@@ -2,9 +2,8 @@ import streamlit as st
 from fungsi import caesar, xor, rsa
 
 def demo_page():
-    """Menampilkan halaman demo untuk "kalkulator" enkripsi & dekripsi."""
     st.title("🧪 Demo Proses Super-Enkripsi")
-    st.info("Gunakan alat ini untuk mengenkripsi pesan sebelum dikirim, atau mendekripsi pesan yang Anda terima dari chat.")
+    st.info("Gunakan alat ini untuk mendekripsi pesan yang Anda terima dari chat.")
 
     # Inisialisasi session_state untuk menyimpan hasil
     if "demo_enc_results" not in st.session_state:

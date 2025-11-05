@@ -11,7 +11,7 @@ def login():
 
     if st.button("Login", key="login_button"):
         if not username or not password:
-            st.error("Please enter both username and password.")
+            st.error("Masukkan username dan password.")
             return
 
         query = conn.run_query(
@@ -31,9 +31,9 @@ def login():
             if hmac.compare_digest(computed_hash, stored_hash):
                 st.session_state['sudah_login'] = True
                 st.session_state['username'] = username
-                st.success("✅ Login successful.")
+                st.success("✅ Login berhasil.")
                 st.rerun()
             else:
-                st.error("❌ Invalid username or password.")
+                st.error("❌ Username atau password salah.")
         else:
-            st.error("❌ Invalid username or password.")
+            st.error("❌ Username atau password salah.")

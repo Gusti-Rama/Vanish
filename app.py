@@ -14,13 +14,14 @@ st.set_page_config(
 if st.session_state['sudah_login']:
     
     username = st.session_state['username']
-    
-    st.sidebar.title(f"Selamat Datang, {username}!")
+
+    st.sidebar.title("Vanish")
+    st.sidebar.subheader(f"Selamat Datang, {username}!")
     st.sidebar.divider()
 
     page = st.sidebar.radio(
         "Navigasi", 
-        ["🏠 Dashboard","💬 Chat", "🧪 Demo Super-Enkripsi", "🔒 File Encryption", "🖼️ Steganography"],  
+        ["🏠 Dashboard","💬 Chat", "🧪 Demo Super-Enkripsi", "🔒 Enkripsi File", "🖼️ Steganography"],  
         key="nav_radio"
     )
     
@@ -30,7 +31,7 @@ if st.session_state['sudah_login']:
         chat.chat_page()
     elif page == "🧪 Demo Super-Enkripsi":
         demo.demo_page() 
-    elif page == "🔒 File Encryption":
+    elif page == "🔒 Enkripsi File":
         file.file_page()
     elif page == "🖼️ Steganography": 
         stego.stego_page()
@@ -110,7 +111,7 @@ else:
     
     st.markdown(
         "<p class='app-subheader'>"
-        "Vanish is a secure messaging app that allows you to send and receive messages securely."
+        "Vanish adalah sebuah aplikasi chat terenkripsi untuk mengirim dan menerima pesan dengan aman."
         "</p>", 
         unsafe_allow_html=True
     )

@@ -1,12 +1,11 @@
 import os
 import mysql.connector
 import pandas as pd
-from dotenv import load_dotenv  # untuk mengambil data dari file .env
+from dotenv import load_dotenv  # ambil data dr .env
 
 load_dotenv()
 
 def get_connection():
-    """Create a new MySQL connection from environment variables."""
     return mysql.connector.connect(
         host=os.getenv("DB_HOST"),
         user=os.getenv("DB_USER"),
@@ -16,15 +15,7 @@ def get_connection():
         autocommit=False,
     )
 
-
-# Di file koneksi.py
-
 def run_query(query: str, params: tuple | None = None, fetch: bool = False):
-    """Execute a SQL query.
-
-    - When fetch=True, returns a pandas DataFrame (can be empty) or None on error.
-    - When fetch=False, commits changes and returns True on success, False on error.
-    """
     conn = None
     cursor = None
     try:

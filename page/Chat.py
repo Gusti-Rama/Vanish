@@ -3,10 +3,9 @@ import koneksi as conn
 from datetime import datetime
 from fungsi import caesar, xor, rsa
 import html
-from fungsi import db_encrypt # --- PERUBAHAN BARU ---
+from fungsi import db_encrypt
 
 def get_user_id(username):
-    """Get user ID from username"""
     query = conn.run_query(
         "SELECT id_user FROM user WHERE username = %s;",
         (username,),
@@ -18,7 +17,6 @@ def get_user_id(username):
 
 
 def load_user_chats(user_id):
-    """Load all chats for a user"""
     query = conn.run_query(
         """
         SELECT DISTINCT u.id_user, u.username,
@@ -41,7 +39,6 @@ def load_user_chats(user_id):
 
 
 def load_messages(user_id1, user_id2):
-    """Load messages between two users (HANYA CIPHERTEXT)"""
     query = conn.run_query(
         """
         SELECT t.id_text, t.message, t.sender_id, t.receiver_id, t.created_at,
@@ -62,7 +59,7 @@ def load_messages(user_id1, user_id2):
         for _, row in query.iterrows():
             message_content = row['message']
             
-            # --- Dekripsi data dari DB (ChaCha20) ---
+            # Dekripsi data dari DB (ChaCha20)
             try:
                 if isinstance(message_content, bytes):
                     decrypted_db_bytes = db_encrypt.decrypt_db_data(message_content)
@@ -72,7 +69,6 @@ def load_messages(user_id1, user_id2):
             except Exception as e:
                 print(f"Gagal dekripsi pesan DB (ID: {row['id_text']}): {e}")
                 message_content = "[Data terenkripsi korup atau kunci salah]"
-            # --- AKHIR DEKRIPSI ---
                 
             messages.append({
                 'id_text': row['id_text'],
@@ -86,9 +82,7 @@ def load_messages(user_id1, user_id2):
         return messages
     return []
 
-# --- FUNGSI BARU UNTUK MENGHAPUS CHAT ---
 def delete_chat_history(user_id1, user_id2):
-    """Menghapus semua pesan antara dua pengguna dari database."""
     query = """
         DELETE FROM text 
         WHERE (sender_id = %s AND receiver_id = %s) 
@@ -97,41 +91,38 @@ def delete_chat_history(user_id1, user_id2):
     success = conn.run_query(
         query,
         (user_id1, user_id2, user_id2, user_id1),
-        fetch=False  # Ini adalah operasi DELETE, bukan fetch
+        fetch=False 
     )
     return success
-# --- AKHIR FUNGSI BARU ---
-
 
 def chat_page():    
     current_username = st.session_state.get('username')
     if not current_username:
-        st.error("Please log in first!")
+        st.error("Mohon login terlebih dahulu!")
         return
     
     current_user_id = get_user_id(current_username)
     if not current_user_id:
-        st.error("User not found in database!")
+        st.error("User tidak ditemukan!")
         return
     
     if 'active_chat' not in st.session_state:
         st.session_state['active_chat'] = None
     
-    # --- KEMBALIKAN KUNCI KE SESSION_STATE ---
+    # BALIKIN KUNCI KE SESSION_STATE
     if 'chat_caesar_shift' not in st.session_state:
         st.session_state['chat_caesar_shift'] = 7
     if 'chat_xor_key' not in st.session_state:
         st.session_state['chat_xor_key'] = "69"
-    # --- AKHIR PENGEMBALIAN ---
 
     chats = load_user_chats(current_user_id)
     
     with st.sidebar:
         st.header("💬 Chats")
-        st.subheader("Your Chats")
+        st.subheader("Kontak")
         
         if not chats:
-            st.info("No chats yet. Add a new chat to get started!")
+            st.info("Belum ada chat. Tambahkan kontak baru untuk memulai")
         else:
             for chat in chats:
                 chat_username = chat['username']
@@ -147,26 +138,26 @@ def chat_page():
                         st.session_state['active_chat'] = chat_username
                         st.rerun()
         
-        st.subheader("Add New Chat")
-        new_chat_username = st.text_input("Enter username to chat with", key="new_chat_input", placeholder="Username...")
-        
-        if st.button("➕ Add Chat", key="add_chat_button"):
+        st.subheader("Tambah Chat Baru")
+        new_chat_username = st.text_input("Masukkan username untuk chat", key="new_chat_input", placeholder="Username...")
+
+        if st.button("➕ Tambah Chat", key="add_chat_button"):
             if new_chat_username:
                 new_chat_username = new_chat_username.strip()
                 if new_chat_username == current_username:
-                    st.error("You cannot chat with yourself!")
+                    st.error("Anda tidak dapat chat ke diri sendiri!")
                 elif any(chat['username'] == new_chat_username for chat in chats):
-                    st.warning("Chat with this user already exists!")
+                    st.warning("Chat dengan pengguna ini sudah ada!")
                     st.session_state['active_chat'] = new_chat_username
                     st.rerun()
                 else:
                     other_user_id = get_user_id(new_chat_username)
                     if other_user_id:
                         st.session_state['active_chat'] = new_chat_username
-                        st.success(f"Chat with {new_chat_username} added!")
+                        st.success(f"Chat dengan {new_chat_username} ditambahkan!")
                         st.rerun()
                     else:
-                        st.error("User not found!")
+                        st.error("User tidak ditemukan!")
 
     if st.session_state['active_chat']:
         display_chat_area(st.session_state['active_chat'], current_user_id, current_user_id)
@@ -175,28 +166,13 @@ def chat_page():
         st.info("Pilih User untuk di chat.")
 
 
-def display_chat_area(chat_username, current_user_id, current_user_id_for_key):
-    """Display the main chat interface for a specific user"""
-    
+def display_chat_area(chat_username, current_user_id, current_user_id_for_key):    
     st.title(f"💬 Chat with {chat_username}")
     
     other_user_id = get_user_id(chat_username)
     if not other_user_id:
-        st.error("User not found!")
+        st.error("User tidak ditemukan!")
         return
-    
-    # --- FITUR BARU: Tombol Hapus ---
-    with st.expander("⚠️ Hapus Riwayat Chat"):
-        st.warning("PERINGATAN: Tindakan ini akan menghapus seluruh riwayat chat INI (untuk Anda DAN penerima) secara permanen dari server.")
-        
-        if st.button("Hapus Riwayat Chat Ini (Tidak bisa dibatalkan)", key=f"delete_chat_{chat_username}", use_container_width=True):
-            success = delete_chat_history(current_user_id, other_user_id)
-            if success:
-                st.success("Riwayat chat berhasil dihapus.")
-                st.rerun() # Rerun untuk me-refresh daftar pesan
-            else:
-                st.error("Gagal menghapus riwayat chat.")
-    # --- AKHIR FITUR BARU ---
     
     messages = load_messages(current_user_id, other_user_id)
     
@@ -209,11 +185,10 @@ def display_chat_area(chat_username, current_user_id, current_user_id_for_key):
             for msg in messages:
                 display_message(msg, st.session_state.get('username', 'You'))
         else:
-            st.info(f"No messages yet. Start chatting with {chat_username}!")
+            st.info(f"Belum ada chat dengan {chat_username}!")
     
     st.divider()
 
-    # --- KEMBALIKAN PENGATURAN KUNCI ---
     st.subheader("Pengaturan Kunci Enkripsi (Untuk Mengirim)")
     st.warning("Pastikan pengirim dan penerima menyetujui kunci yang SAMA persis.")
     
@@ -223,41 +198,39 @@ def display_chat_area(chat_username, current_user_id, current_user_id_for_key):
             "Caesar Shift (1-25)", 
             min_value=1, 
             max_value=25, 
-            key="chat_caesar_shift" # Gunakan kunci dari session_state
+            key="chat_caesar_shift" # pake kunci dari session_state
         )
     with col_key2:
         st.text_input(
             "Kunci XOR (Teks)", 
-            key="chat_xor_key", # Gunakan kunci dari session_state
+            key="chat_xor_key", # pake kunci dari session_state
             placeholder="Contoh: rahasia123"
         )
-    # --- AKHIR PENGEMBALIAN ---
 
-    st.subheader("Send Message")
-    st.info("Tips: Gunakan 'Demo Enkripsi' untuk membuat ciphertext, lalu copy-paste ke sini. (Atau ketik langsung dan akan dienkripsi otomatis)")
+    st.subheader("Kirim Pesan")
     
     message_text = st.text_area(
-        "Type your message (Plaintext atau Ciphertext)", 
+        "Tulis Pesan Anda Di Sini", 
         key=f"message_input_{chat_username}",
         height=100,
-        placeholder="Type your message here..."
+        placeholder="Tulis pesan Anda di sini..."
     )
     
     col_send, col_clear = st.columns([4, 1])
 
     with col_send:
         st.button(
-            "📤 Send Message (Encrypts if not ciphertext)",
+            "📤 Kirim Pesan",
             key=f"send_button_{chat_username}",
             on_click=send_message,
             args=(chat_username, current_user_id, other_user_id, message_text),
             use_container_width=True,
-            help="Teks akan dienkripsi menggunakan kunci di atas. Jika Anda menempelkan ciphertext, itu akan dienkripsi-ganda."
+            help="Teks akan dienkripsi menggunakan kunci di atas. Jika Anda menempelkan ciphertext, teks akan dienkripsi ganda."
         )
     
     with col_clear:
         st.button(
-            "🗑️ Clear Text", 
+            "🗑️ Hapus Teks",
             key=f"clear_button_{chat_username}", 
             on_click=clear_all_inputs, 
             args=(chat_username,), 
@@ -265,9 +238,19 @@ def display_chat_area(chat_username, current_user_id, current_user_id_for_key):
             help="Menghapus teks yang akan dikirim"
         )
 
+    with st.expander("⚠️ Hapus Riwayat Chat"):
+        st.warning("PERINGATAN: Tindakan ini akan menghapus seluruh riwayat chat INI (untuk Anda DAN penerima) secara permanen dari server.")
+        
+        if st.button("Hapus Riwayat Chat Ini (Tidak bisa dibatalkan)", key=f"delete_chat_{chat_username}", use_container_width=True):
+            success = delete_chat_history(current_user_id, other_user_id)
+            if success:
+                st.success("Riwayat chat berhasil dihapus.")
+                st.rerun()
+            else:
+                st.error("Gagal menghapus riwayat chat.")
+
 
 def display_message(message, current_username):
-    """Display a single message in the chat (SEBAGAI CIPHERTEXT)"""
     sender_username = message.get('sender_username', '')
     message_content = message.get('message', '') 
     timestamp = message.get('created_at', '')
@@ -304,35 +287,31 @@ def display_message(message, current_username):
             </div>
             """, unsafe_allow_html=True)
 
-# --- KEMBALIKAN FUNGSI 'SEND_MESSAGE' KE VERSI ENKRIPSI OTOMATIS ---
-def send_message(chat_username, sender_id, receiver_id, message_text):
-    """Handle sending a message to the database (SELALU ENKRIPSI)"""
-    
+def send_message(chat_username, sender_id, receiver_id, message_text):    
     if not message_text or not message_text.strip():
         st.warning("Please enter a message!")
         return
     
     full_message = message_text.strip()
     
-    # Ambil kunci dari session_state (yang diatur di halaman chat)
+    # Ambil kunci dari session_state
     caesar_shift = st.session_state.get('chat_caesar_shift',    )
     xor_key = st.session_state.get('chat_xor_key', "69")
     if not xor_key: xor_key = "69" 
 
-    # Lakukan Super-Enkripsi
+    # Super-Enkripsi
     encrypted_caesar = caesar.caesar_encrypt(full_message, caesar_shift) 
     encrypted_xor = xor.xor_encrypt(encrypted_caesar, xor_key) 
     encrypted_rsa = rsa.rsa_encrypt(encrypted_xor) 
     encrypted_message_str = ' '.join(map(str, encrypted_rsa)) # string
 
-    # Enkripsi untuk DB (ChaCha20)
+    # Enkrip DB (ChaCha20)
     message_bytes_for_db = encrypted_message_str.encode('utf-8')
     encrypted_payload_for_db = db_encrypt.encrypt_db_data(message_bytes_for_db)
-    # --- AKHIR ENKRIPSI ---
 
     success = conn.run_query(
         "INSERT INTO text (message, sender_id, receiver_id) VALUES (%s, %s, %s);",
-        (encrypted_payload_for_db, sender_id, receiver_id), # Kirim payload terenkripsi DB
+        (encrypted_payload_for_db, sender_id, receiver_id),
         fetch=False
     )
     
@@ -343,9 +322,7 @@ def send_message(chat_username, sender_id, receiver_id, message_text):
         st.error("Failed to send message. Please try again.")
 
 
-def clear_all_inputs(chat_username):
-    """Menghapus semua input di area kirim pesan"""
-    
+def clear_all_inputs(chat_username):    
     text_key = f"message_input_{chat_username}"
     if text_key in st.session_state:
         st.session_state[text_key] = ""

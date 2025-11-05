@@ -1,20 +1,15 @@
 import streamlit as st
 from PIL import Image
-from fungsi import steganography # Impor semua fungsi dari steganography.py
+from fungsi import steganography
 import io
 import koneksi as conn
 from page.chat import get_user_id 
 from fungsi import db_encrypt 
 
-def stego_page():
-    """
-    Menampilkan halaman untuk MENGIRIM dan MENERIMA stego-image
-    melalui database. (TEKS dan GAMBAR)
-    """
-    
+def stego_page():  
     current_username = st.session_state.get('username')
     if not current_username:
-        st.error("Silakan login terlebih dahulu!")
+        st.error("Silahkan login terlebih dahulu!")
         return
     
     current_user_id = get_user_id(current_username)
@@ -22,10 +17,10 @@ def stego_page():
         st.error("User tidak ditemukan di database!")
         return
     
-    st.title("🖼️ Brankas Steganografi")
+    st.title("🖼️ Steganografi")
     st.info("Kirim dan terima gambar yang berisi pesan rahasia (teks atau gambar lain). Pesan hanya bisa diekstrak jika penerima tahu 'Threshold' yang Anda gunakan.")
 
-    with st.expander("⚙️ Pengaturan Lanjutan (Adaptive LSB)"):
+    with st.expander("⚙️ Pengaturan (Adaptive LSB)"):
         st.markdown("Pastikan pengirim dan penerima menggunakan **Threshold** yang SAMA PERSIS.")
         threshold_percentile = st.slider(
             "Threshold Kompleksitas (Persentil)",
@@ -43,7 +38,6 @@ def stego_page():
         "📥 Stego-Image Masuk"
     ])
 
-    # --- TAB 1: KIRIM TEKS ---
     with tab_text:
         st.header("Sembunyikan Pesan Teks & Kirim")
         
@@ -58,13 +52,11 @@ def stego_page():
             else:
                 user_list = users_df.set_index('id_user')['username'].to_dict()
                 
-                # --- PERUBAHAN DI SINI ---
                 receiver_username_input = st.text_input(
                     "1. Pilih Penerima:",
                     key="stego_text_receiver",
                     placeholder="Masukkan username penerima..."
                 )
-                # --- AKHIR PERUBAHAN ---
 
                 cover_image_file = st.file_uploader(
                     "2. Upload Gambar Sampul (Cover Image):", 
@@ -80,10 +72,8 @@ def stego_page():
             
                 if st.button("Sembunyikan Teks & Kirim", key="stego_text_enc_btn", use_container_width=True):
                     
-                    # --- PERUBAHAN DI SINI ---
                     receiver_username = receiver_username_input.strip()
                     receiver_id = next((uid for uid, uname in user_list.items() if uname == receiver_username), None)
-                    # --- AKHIR PERUBAHAN ---
 
                     if receiver_id and cover_image_file and secret_message:
                         with st.spinner("Membuat stego-image (teks) dan mengirim..."):
@@ -151,7 +141,6 @@ def stego_page():
         except Exception as e:
             st.error(f"Gagal memuat daftar pengguna: {e}")
 
-    # --- TAB 2: KIRIM GAMBAR ---
     with tab_image:
         st.header("Sembunyikan Gambar & Kirim")
         
@@ -166,13 +155,11 @@ def stego_page():
             else:
                 user_list_img = users_df_img.set_index('id_user')['username'].to_dict()
                 
-                # --- PERUBAHAN DI SINI ---
                 receiver_username_input_img = st.text_input(
                     "1. Pilih Penerima:",
                     key="stego_img_receiver",
                     placeholder="Masukkan username penerima..."
                 )
-                # --- AKHIR PERUBAHAN ---
 
                 cover_image_file_img = st.file_uploader(
                     "2. Upload Gambar Sampul (Cover Image):", 
@@ -188,10 +175,8 @@ def stego_page():
             
                 if st.button("Sembunyikan Gambar & Kirim", key="stego_img_enc_btn", use_container_width=True):
                     
-                    # --- PERUBAHAN DI SINI ---
                     receiver_username_img = receiver_username_input_img.strip()
                     receiver_id_img = next((uid for uid, uname in user_list_img.items() if uname == receiver_username_img), None)
-                    # --- AKHIR PERUBAHAN ---
                     
                     if receiver_id_img and cover_image_file_img and secret_image_file_img:
                         with st.spinner("Membuat stego-image (gambar) dan mengirim..."):
@@ -261,8 +246,6 @@ def stego_page():
         except Exception as e:
             st.error(f"Gagal memuat daftar pengguna: {e}")
 
-
-    # --- TAB 3: KOTAK MASUK (Tidak ada perubahan di sini) ---
     with tab_inbox:
         st.header("Stego-Image Masuk")
         st.warning("Pastikan 'Pengaturan Lanjutan' di atas SAMA PERSIS dengan yang digunakan pengirim.")
