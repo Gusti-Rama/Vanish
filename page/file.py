@@ -27,6 +27,7 @@ def file_page():
         st.header("Kirim File Aman")
         
         try:
+            # Kita masih perlu daftar user untuk validasi
             users_df = conn.run_query(
                 "SELECT id_user, username FROM user WHERE id_user != %s",
                 (current_user_id,),
@@ -36,13 +37,15 @@ def file_page():
                 st.warning("Tidak ada pengguna lain untuk dikirimi file.")
                 return
             
+            # user_list digunakan untuk mencari ID nanti
             user_list = users_df.set_index('id_user')['username'].to_dict()
             
-            receiver_username = st.selectbox(
+            # --- PERUBAHAN DI SINI: dari selectbox ke text_input ---
+            receiver_username_input = st.text_input(
                 "Pilih Penerima:",
-                options=user_list.values()
+                placeholder="Masukkan username penerima..."
             )
-            receiver_id = next((uid for uid, uname in user_list.items() if uname == receiver_username), None)
+            # --- AKHIR PERUBAHAN ---
 
             uploaded_file = st.file_uploader("Pilih file yang akan dienkripsi:")
             
@@ -54,6 +57,12 @@ def file_page():
             )
 
             if st.button("Enkripsi & Kirim File", use_container_width=True):
+                
+                # --- PERUBAHAN DI SINI: Pindahkan validasi ID ke dalam tombol ---
+                receiver_username = receiver_username_input.strip()
+                receiver_id = next((uid for uid, uname in user_list.items() if uname == receiver_username), None)
+                # --- AKHIR PERUBAHAN ---
+
                 if receiver_id and uploaded_file and encryption_key:
                     
                     if len(encryption_key.encode('utf-8')) < 4:
@@ -65,13 +74,11 @@ def file_page():
                                 # 1. Enkripsi Blowfish (App-level)
                                 encrypted_blowfish_bytes = file_encrypt.encrypt_bytes(file_bytes, encryption_key)
                                 
-                                # --- PERUBAHAN BARU ---
                                 # 2. Enkripsi ChaCha20 (DB-level) untuk semua data
                                 encrypted_db_payload = db_encrypt.encrypt_db_data(encrypted_blowfish_bytes)
                                 encrypted_file_name = db_encrypt.encrypt_db_string(uploaded_file.name)
                                 encrypted_file_type = db_encrypt.encrypt_db_string(uploaded_file.type)
                                 category = "file"
-                                # --- AKHIR PERUBAHAN ---
                                 
                                 success = conn.run_query(
                                     """
@@ -109,7 +116,13 @@ def file_page():
                             except Exception as e:
                                 st.error(f"Terjadi kesalahan saat enkripsi: {e}")
                 else:
-                    st.warning("Harap isi semua kolom (Penerima, File, dan Kunci).")
+                    # Pesan error jika salah satu field kosong
+                    if not receiver_id:
+                        st.error(f"Username '{receiver_username}' tidak ditemukan atau Anda belum mengisi nama penerima.")
+                    elif not uploaded_file:
+                        st.warning("Harap pilih file.")
+                    elif not encryption_key:
+                        st.warning("Harap masukkan kunci enkripsi.")
             
         except Exception as e:
             st.error(f"Gagal memuat daftar pengguna: {e}")
@@ -118,7 +131,6 @@ def file_page():
         st.header("File Diterima")
         
         try:
-            # --- PERUBAHAN BARU: Query berdasarkan category ---
             files_df = conn.run_query(
                 """
                 SELECT f.id_file, f.file_name, f.file_type, f.uploaded_at, u.username as sender_username 
@@ -130,7 +142,6 @@ def file_page():
                 (current_user_id,),
                 fetch=True
             )
-            # --- AKHIR PERUBAHAN ---
             
             if files_df is None:
                 st.error("Gagal mengambil data file.")
@@ -142,14 +153,12 @@ def file_page():
                 for _, row in files_df.iterrows():
                     file_id = row['id_file']
                     
-                    # --- PERUBAHAN BARU: Dekripsi file_name & file_type ---
                     try:
                         decrypted_file_name = db_encrypt.decrypt_db_string(row['file_name'])
                         decrypted_file_type = db_encrypt.decrypt_db_string(row['file_type'])
                     except Exception as e:
                         st.error(f"Gagal mendekripsi metadata file {file_id}. Data korup atau kunci DB salah.")
                         continue
-                    # --- AKHIR PERUBAHAN ---
 
                     with st.expander(f"🔒 **{decrypted_file_name}** dari **{row['sender_username']}**"):
                         st.caption(f"Diterima: {row['uploaded_at']} | Tipe: {decrypted_file_type}")
@@ -176,12 +185,8 @@ def file_page():
                                             )
                                             
                                             if not file_data_df.empty:
-                                                # 1. Ambil payload terenkripsi ChaCha20 dari DB
                                                 encrypted_db_payload = file_data_df.iloc[0]['file_data']
-                                                # 2. Dekripsi ChaCha20 (DB-level)
                                                 encrypted_blowfish_bytes = db_encrypt.decrypt_db_data(encrypted_db_payload)
-                                                
-                                                # 3. Dekripsi Blowfish (App-level)
                                                 decrypted_bytes = file_encrypt.decrypt_bytes(encrypted_blowfish_bytes, decryption_key)
                                                 
                                                 st.success("Dekripsi berhasil!")
