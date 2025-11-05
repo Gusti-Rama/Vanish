@@ -16,12 +16,8 @@ def _get_adaptive_indices(image, threshold_percentile):
     """
     img_rgb = image.convert('RGB')
     
-    # --- INI ADALAH PERBAIKAN PENTING YANG HILANG ---
     # Paksa LSB (bit terakhir) menjadi 0 sebelum analisis.
-    # Ini memastikan peta indeks akan SAMA untuk gambar asli dan gambar-stego
-    # karena analisis gradien tidak akan terpengaruh oleh data LSB yang tersembunyi.
     pixels = np.array(img_rgb) & 254
-    # -----------------------------------------------
     
     # Konversi ke grayscale untuk analisis kompleksitas
     gray = np.dot(pixels[...,:3], [0.299, 0.587, 0.114])
@@ -92,32 +88,24 @@ def extract_msg(image, threshold_percentile):
     """
     img_rgb = image.convert('RGB')
     
-    # 1. Dapatkan "peta" piksel yang aman (harus sama persis dengan embed)
-    # Karena _get_adaptive_indices sekarang mengabaikan LSB,
-    # ia akan menghasilkan peta yang sama untuk gambar-stego ini
-    # seperti yang dilakukannya pada gambar asli.
     try:
         embed_indices, shape = _get_adaptive_indices(image, threshold_percentile)
     except Exception as e:
         raise ValueError(f"Gagal menganalisis gambar: {e}")
 
-    # Ambil piksel dari gambar yang di-upload (gambar-stego)
     pixels = np.array(img_rgb)
     flat_pixels = pixels.reshape(-1, 3)
 
-    # 2. Siapkan delimiter
     binary_data = ""
     delimiter = "###"
     binary_delimiter = to_binary(delimiter)
     
-    # 3. Ekstrak data
     for idx in embed_indices:
         pixel = flat_pixels[idx]
         
         for channel in range(3):
             binary_data += str(pixel[channel] & 1)
             
-            # 4. Cek delimiter
             if binary_data.endswith(binary_delimiter):
                 binary_data = binary_data[:-len(binary_delimiter)]
                 
