@@ -16,7 +16,7 @@ def file_page():
         st.error("User tidak ditemukan di database!")
         return
 
-    st.title("🔒 File Terenkripsi")
+    st.title("🔐 File Terenkripsi")
     st.info("Kirim dan terima file rahasia menggunakan enkripsi Blowfish. Kunci dekripsi harus Anda bagikan dengan penerima secara terpisah (misalnya, melalui chat).")
 
     tab1, tab2 = st.tabs(["📤 Kirim File", "📥 File Masuk"])
@@ -25,7 +25,7 @@ def file_page():
         st.header("Kirim File Aman")
         
         try:
-            # Kita masih perlu daftar user buat validasi
+            # Ambil user
             users_df = conn.run_query(
                 "SELECT id_user, username FROM user WHERE id_user != %s",
                 (current_user_id,),
@@ -35,8 +35,16 @@ def file_page():
                 st.warning("Tidak ada pengguna lain untuk dikirimi file.")
                 return
             
-            # user_list buat nyari ID nanti
-            user_list = users_df.set_index('id_user')['username'].to_dict()
+            # Dekripsi username untuk ditampilkan
+            decrypted_user_list = {}
+            for _, row in users_df.iterrows():
+                try:
+                    decrypted_name = db_encrypt.decrypt_db_string(row['username'])
+                    decrypted_user_list[row['id_user']] = decrypted_name
+                except Exception: 
+                    pass # Abaikan user yang gagal didekrip
+
+            user_list = decrypted_user_list
             
             receiver_username_input = st.text_input(
                 "Pilih Penerima:",
@@ -148,13 +156,19 @@ def file_page():
                     file_id = row['id_file']
                     
                     try:
+                        # Dekripsi sender_username
+                        decrypted_sender_username = db_encrypt.decrypt_db_string(row['sender_username'])
+                    except Exception as e:
+                        decrypted_sender_username = "[Pengirim Gagal Dekrip]"
+
+                    try:
                         decrypted_file_name = db_encrypt.decrypt_db_string(row['file_name'])
                         decrypted_file_type = db_encrypt.decrypt_db_string(row['file_type'])
                     except Exception as e:
                         st.error(f"Gagal mendekripsi metadata file {file_id}. Data korup atau kunci DB salah.")
                         continue
 
-                    with st.expander(f"🔒 **{decrypted_file_name}** dari **{row['sender_username']}**"):
+                    with st.expander(f"📁 **{decrypted_file_name}** dari **{decrypted_sender_username}**"):
                         st.caption(f"Diterima: {row['uploaded_at']} | Tipe: {decrypted_file_type}")
                         
                         decryption_key = st.text_input(

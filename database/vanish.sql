@@ -57,11 +57,10 @@ CREATE TABLE IF NOT EXISTS `text` (
 -- Dumping structure for table vanish.user
 CREATE TABLE IF NOT EXISTS `user` (
   `id_user` int NOT NULL AUTO_INCREMENT,
-  `username` varchar(255) DEFAULT NULL,
+  `username` blob,
   `password` binary(32) NOT NULL,
   `salt` binary(16) NOT NULL,
-  PRIMARY KEY (`id_user`) USING BTREE,
-  UNIQUE KEY `username` (`username`)
+  PRIMARY KEY (`id_user`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Data exporting was unselected.

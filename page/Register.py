@@ -2,6 +2,7 @@ import streamlit as st
 import koneksi as conn
 import hashlib
 import os
+from fungsi import db_encrypt
 
 def register():
     st.title("📝 Register")
@@ -17,20 +18,35 @@ def register():
             st.error("Password tidak cocok.")
             return
 
-        query = conn.run_query("SELECT * FROM user WHERE username = %s;", (username,), fetch=True)
-        if query is not None and not query.empty:
+        # Ambil semua username, dekripsi, dan cek
+        all_users_df = conn.run_query("SELECT username FROM user;", fetch=True)
+        username_exists = False
+        if all_users_df is not None and not all_users_df.empty:
+            for enc_username_bytes in all_users_df['username']:
+                try:
+                    decrypted_username = db_encrypt.decrypt_db_string(enc_username_bytes)
+                    if decrypted_username == username:
+                        username_exists = True
+                        break
+                except Exception as e:
+                    print(f"Error decrypting username during registration check: {e}")
+        
+        if username_exists:
             st.error("Username sudah terdaftar.")
         else:
             salt = os.urandom(16)
             hashed_password = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+            
+            # Enkripsi username sebelum insert
+            encrypted_username = db_encrypt.encrypt_db_string(username)
 
             success = conn.run_query( 
                 "INSERT INTO user (username, password, salt) VALUES (%s, %s, %s);",
-                (username, hashed_password, salt),
+                (encrypted_username, hashed_password, salt),
                 fetch=False
             )
             
             if success:
                 st.success("Register berhasil.")
             else:
-                st.error("Register gagal. Silahkan coba lagi.")   
+                st.error("Register gagal. Silahkan coba lagi.")

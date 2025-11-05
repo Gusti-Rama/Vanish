@@ -6,13 +6,16 @@ import html
 from fungsi import db_encrypt
 
 def get_user_id(username):
-    query = conn.run_query(
-        "SELECT id_user FROM user WHERE username = %s;",
-        (username,),
-        fetch=True
-    )
-    if query is not None and not query.empty:
-        return int(query.iloc[0]['id_user'])
+    # Ambil semua user, dekripsi, dan cari ID
+    all_users_df = conn.run_query("SELECT id_user, username FROM user;", fetch=True)
+    if all_users_df is not None and not all_users_df.empty:
+        for _, row in all_users_df.iterrows():
+            try:
+                decrypted_username = db_encrypt.decrypt_db_string(row['username'])
+                if decrypted_username == username:
+                    return int(row['id_user'])
+            except Exception as e:
+                print(f"Error in get_user_id: {e}")
     return None
 
 
@@ -34,7 +37,14 @@ def load_user_chats(user_id):
     )
     
     if query is not None and not query.empty:
-        return query.to_dict('records')
+        records = query.to_dict('records')
+        # Dekripsi username untuk ditampilkan
+        for record in records:
+            try:
+                record['username'] = db_encrypt.decrypt_db_string(record['username'])
+            except Exception as e:
+                record['username'] = "[Nama Gagal Dekrip]"
+        return records
     return []
 
 
@@ -69,14 +79,25 @@ def load_messages(user_id1, user_id2):
             except Exception as e:
                 print(f"Gagal dekripsi pesan DB (ID: {row['id_text']}): {e}")
                 message_content = "[Data terenkripsi korup atau kunci salah]"
+            
+            # Dekripsi username
+            try:
+                sender_username = db_encrypt.decrypt_db_string(row['sender_username'])
+            except Exception:
+                sender_username = "[User Gagal Dekrip]"
                 
+            try:
+                receiver_username = db_encrypt.decrypt_db_string(row['receiver_username'])
+            except Exception:
+                receiver_username = "[User Gagal Dekrip]"
+
             messages.append({
                 'id_text': row['id_text'],
                 'message': message_content, 
                 'sender_id': row['sender_id'],
                 'receiver_id': row['receiver_id'],
-                'sender_username': row['sender_username'],
-                'receiver_username': row['receiver_username'],
+                'sender_username': sender_username,
+                'receiver_username': receiver_username,
                 'created_at': row['created_at']
             })
         return messages

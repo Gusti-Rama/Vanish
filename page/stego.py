@@ -50,7 +50,16 @@ def stego_page():
             if users_df is None or users_df.empty:
                 st.warning("Tidak ada pengguna lain untuk dikirimi file.")
             else:
-                user_list = users_df.set_index('id_user')['username'].to_dict()
+                # Dekripsi username untuk ditampilkan
+                decrypted_user_list = {}
+                for _, row in users_df.iterrows():
+                    try:
+                        decrypted_name = db_encrypt.decrypt_db_string(row['username'])
+                        decrypted_user_list[row['id_user']] = decrypted_name
+                    except Exception: 
+                        pass # Abaikan user yang gagal didekrip
+                
+                user_list = decrypted_user_list
                 
                 receiver_username_input = st.text_input(
                     "1. Pilih Penerima:",
@@ -153,7 +162,16 @@ def stego_page():
             if users_df_img is None or users_df_img.empty:
                 st.warning("Tidak ada pengguna lain untuk dikirimi file.")
             else:
-                user_list_img = users_df_img.set_index('id_user')['username'].to_dict()
+                # Dekripsi username untuk ditampilkan
+                decrypted_user_list_img = {}
+                for _, row in users_df_img.iterrows():
+                    try:
+                        decrypted_name = db_encrypt.decrypt_db_string(row['username'])
+                        decrypted_user_list_img[row['id_user']] = decrypted_name
+                    except Exception: 
+                        pass # Abaikan user yang gagal didekrip
+                
+                user_list_img = decrypted_user_list_img
                 
                 receiver_username_input_img = st.text_input(
                     "1. Pilih Penerima:",
@@ -275,6 +293,12 @@ def stego_page():
                     category = row['category']
                     
                     try:
+                        # Dekripsi sender_username
+                        decrypted_sender_username = db_encrypt.decrypt_db_string(row['sender_username'])
+                    except Exception as e:
+                        decrypted_sender_username = "[Pengirim Gagal Dekrip]"
+
+                    try:
                         decrypted_file_name = db_encrypt.decrypt_db_string(row['file_name'])
                         decrypted_file_type = db_encrypt.decrypt_db_string(row['file_type'])
                     except Exception as e:
@@ -283,7 +307,7 @@ def stego_page():
 
                     msg_type_display = "Teks Tersembunyi" if category == 'stego_text' else "Gambar Tersembunyi"
 
-                    with st.expander(f"🖼️ **{decrypted_file_name}** dari **{row['sender_username']}**"):
+                    with st.expander(f"🖼️ **{decrypted_file_name}** dari **{decrypted_sender_username}**"):
                         st.caption(f"Tipe Pesan: {msg_type_display} | Diterima: {row['uploaded_at']}")
                         
                         if category == 'stego_text':
