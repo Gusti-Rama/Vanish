@@ -3,6 +3,7 @@ import koneksi as conn
 from datetime import datetime
 from fungsi import caesar, xor, rsa
 import html
+from fungsi import db_encrypt # --- PERUBAHAN BARU ---
 
 def get_user_id(username):
     """Get user ID from username"""
@@ -60,8 +61,21 @@ def load_messages(user_id1, user_id2):
         messages = []
         for _, row in query.iterrows():
             message_content = row['message']
-            if isinstance(message_content, bytes):
-                message_content = message_content.decode('utf-8')
+            
+            # --- PERUBAHAN BARU: Dekripsi data dari DB ---
+            try:
+                if isinstance(message_content, bytes):
+                    # 1. Dekripsi dari ChaCha20 (menghasilkan bytes)
+                    decrypted_db_bytes = db_encrypt.decrypt_db_data(message_content)
+                    # 2. Decode bytes (hasil Caesar/XOR/RSA) ke string
+                    message_content = decrypted_db_bytes.decode('utf-8')
+                else:
+                    # Jika data tidak terenkripsi (misal data lama), coba decode
+                    message_content = message_content.decode('utf-8')
+            except Exception as e:
+                print(f"Gagal dekripsi pesan DB (ID: {row['id_text']}): {e}")
+                message_content = "[Data terenkripsi korup atau kunci salah]"
+            # --- AKHIR PERUBAHAN ---
                 
             messages.append({
                 'id_text': row['id_text'],
@@ -278,13 +292,18 @@ def send_message(chat_username, sender_id, receiver_id, message_text):
     encrypted_caesar = caesar.caesar_encrypt(full_message, caesar_shift) 
     encrypted_xor = xor.xor_encrypt(encrypted_caesar, xor_key) 
     encrypted_rsa = rsa.rsa_encrypt(encrypted_xor) 
-    encrypted_message = ' '.join(map(str, encrypted_rsa))
+    encrypted_message_str = ' '.join(map(str, encrypted_rsa)) # string
 
-    message_bytes = encrypted_message.encode('utf-8')
+    # --- PERUBAHAN BARU: Enkripsi untuk DB ---
+    # 1. Ubah string super-enkripsi ke bytes
+    message_bytes_for_db = encrypted_message_str.encode('utf-8')
+    # 2. Enkripsi bytes tersebut dengan ChaCha20
+    encrypted_payload_for_db = db_encrypt.encrypt_db_data(message_bytes_for_db)
+    # --- AKHIR PERUBAHAN ---
 
     success = conn.run_query(
         "INSERT INTO text (message, sender_id, receiver_id) VALUES (%s, %s, %s);",
-        (message_bytes, sender_id, receiver_id),
+        (encrypted_payload_for_db, sender_id, receiver_id), # --- PERUBAHAN BARU
         fetch=False
     )
     

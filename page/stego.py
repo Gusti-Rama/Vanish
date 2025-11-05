@@ -4,6 +4,7 @@ from fungsi import steganography
 import io
 import koneksi as conn
 from page.chat import get_user_id 
+from fungsi import db_encrypt # --- PERUBAHAN BARU ---
 
 def stego_page():
     """
@@ -82,25 +83,35 @@ def stego_page():
                                 png_data = output.getvalue()
                             image_lossless = Image.open(io.BytesIO(png_data))
 
+                            # 1. Buat Stego Image (App-level)
                             stego_image = steganography.embed_msg(image_lossless, secret_message, threshold_percentile)
                             
                             buf = io.BytesIO()
                             stego_image.save(buf, format="PNG")
-                            byte_im = buf.getvalue()
+                            byte_im = buf.getvalue() # Bytes Stego Image
 
                             file_name_db = f"stego_from_{current_username}_{cover_image_file.name}.png"
                             
+                            # --- PERUBAHAN BARU ---
+                            # 2. Enkripsi ChaCha20 (DB-level)
+                            encrypted_db_payload = db_encrypt.encrypt_db_data(byte_im)
+                            encrypted_file_name = db_encrypt.encrypt_db_string(file_name_db)
+                            encrypted_file_type = db_encrypt.encrypt_db_string("image/png")
+                            category = "stego"
+                            # --- AKHIR PERUBAHAN ---
+
                             success = conn.run_query(
                                 """
-                                INSERT INTO file (file_data, file_name, file_type, sender_id, receiver_id) 
-                                VALUES (%s, %s, %s, %s, %s)
+                                INSERT INTO file (file_data, file_name, file_type, sender_id, receiver_id, category) 
+                                VALUES (%s, %s, %s, %s, %s, %s)
                                 """,
                                 (
-                                    byte_im, 
-                                    file_name_db, 
-                                    "image/png", 
+                                    encrypted_db_payload, 
+                                    encrypted_file_name,
+                                    encrypted_file_type,
                                     current_user_id, 
-                                    receiver_id
+                                    receiver_id,
+                                    category
                                 ),
                                 fetch=False
                             )
@@ -108,6 +119,7 @@ def stego_page():
                             if success:
                                 st.success(f"Berhasil! Stego-Image telah dikirim ke {receiver_username}.")
                             
+                                # Download salinan Stego-Image (bukan yang dienkripsi DB)
                                 st.download_button(
                                     label=f"Download Salinan '{file_name_db}'",
                                     data=byte_im,
@@ -133,17 +145,19 @@ def stego_page():
         st.warning("Pastikan 'Pengaturan Lanjutan' di atas SAMA PERSIS dengan yang digunakan pengirim.")
 
         try:
+            # --- PERUBAHAN BARU: Query berdasarkan category ---
             files_df = conn.run_query(
                 """
                 SELECT f.id_file, f.file_name, f.file_type, f.uploaded_at, u.username as sender_username 
                 FROM file f 
                 JOIN user u ON f.sender_id = u.id_user 
-                WHERE f.receiver_id = %s AND f.file_type LIKE 'image/%'
+                WHERE f.receiver_id = %s AND f.category = 'stego'
                 ORDER BY f.uploaded_at DESC
                 """,
                 (current_user_id,),
                 fetch=True
             )
+            # --- AKHIR PERUBAHAN ---
             
             if files_df is None:
                 st.error("Gagal mengambil data file.")
@@ -154,8 +168,18 @@ def stego_page():
                 
                 for _, row in files_df.iterrows():
                     file_id = row['id_file']
-                    with st.expander(f"🖼️ **{row['file_name']}** dari **{row['sender_username']}**"):
-                        st.caption(f"Diterima: {row['uploaded_at']} | Tipe: {row['file_type']}")
+                    
+                    # --- PERUBAHAN BARU: Dekripsi file_name & file_type ---
+                    try:
+                        decrypted_file_name = db_encrypt.decrypt_db_string(row['file_name'])
+                        decrypted_file_type = db_encrypt.decrypt_db_string(row['file_type'])
+                    except Exception as e:
+                        st.error(f"Gagal mendekripsi metadata file {file_id}. Data korup atau kunci DB salah.")
+                        continue
+                    # --- AKHIR PERUBAHAN ---
+
+                    with st.expander(f"🖼️ **{decrypted_file_name}** dari **{row['sender_username']}**"):
+                        st.caption(f"Diterima: {row['uploaded_at']} | Tipe: {decrypted_file_type}")
                         
                         if st.button("Ekstrak Pesan", key=f"btn_dec_{file_id}", use_container_width=True):
                             with st.spinner("Mengambil gambar dan mencari pesan..."):
@@ -167,11 +191,15 @@ def stego_page():
                                     )
                                     
                                     if not file_data_df.empty:
-                                        # Konversi bytes kembali ke PIL Image
-                                        image_bytes = file_data_df.iloc[0]['file_data']
+                                        # 1. Ambil payload terenkripsi ChaCha20 dari DB
+                                        encrypted_db_payload = file_data_df.iloc[0]['file_data']
+                                        # 2. Dekripsi ChaCha20 (DB-level)
+                                        image_bytes = db_encrypt.decrypt_db_data(encrypted_db_payload)
+                                        
+                                        # 3. Konversi bytes kembali ke PIL Image
                                         image = Image.open(io.BytesIO(image_bytes))
                                         
-                                        # Ekstrak pesan menggunakan threshold dari slider
+                                        # 4. Ekstrak pesan menggunakan threshold dari slider
                                         extracted_message = steganography.extract_msg(image, threshold_percentile)
                                         
                                         if extracted_message:
@@ -179,10 +207,10 @@ def stego_page():
                                             st.text_area("Pesan:", value=extracted_message, height=150, disabled=True)
                                             
                                             st.download_button(
-                                                label=f"Download Gambar Asli '{row['file_name']}'",
+                                                label=f"Download Gambar Asli '{decrypted_file_name}'",
                                                 data=image_bytes,
-                                                file_name=row['file_name'],
-                                                mime=row['file_type'],
+                                                file_name=decrypted_file_name,
+                                                mime=decrypted_file_type,
                                                 use_container_width=True
                                             )
                                            
@@ -191,7 +219,7 @@ def stego_page():
                                     else:
                                         st.error("Tidak dapat menemukan data file.")
                                 except Exception as e:
-                                    st.error(f"Gagal mengekstrak! Error: {e}")
+                                    st.error(f"Gagal mengekstrak! Kunci DB salah, data korup, atau threshold salah. Error: {e}")
 
         except Exception as e:
             st.error(f"Gagal memuat file masuk: {e}")
