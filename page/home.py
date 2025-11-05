@@ -43,7 +43,7 @@ def home():
             """
         )
         st.warning(
-            "**PENTING (Chat):** Anda dan penerima harus menyetujui dan menggunakan **Kunci Caesar & XOR** yang sama persis agar pesan bisa dibaca!",
+            "**PENTING:** Anda dan penerima harus menyetujui dan menggunakan **Kunci Caesar & XOR** yang sama persis agar pesan bisa dibaca!",
             icon="🔑"
         )
 
@@ -76,7 +76,7 @@ def home():
             """
         )
         st.warning(
-            "**PENTING (Chat):** Anda dan penerima harus menyetujui dan menggunakan **Kunci (Password)** yang sama persis agar file bisa dibuka!",
+            "**PENTING:** Anda dan penerima harus menyetujui dan menggunakan **Kunci (Password)** yang sama persis agar file bisa dibuka!",
             icon="🔐"
         )
     st.divider()
@@ -109,6 +109,6 @@ def home():
             """
         )
         st.warning(
-            "**PENTING (Chat):** Anda dan penerima harus menyetujui dan menggunakan nilai **Threshold** yang sama persis agar data rahasia dapat diekstrak!",
+            "**PENTING:** Anda dan penerima harus menyetujui dan menggunakan nilai **Threshold** yang sama persis agar data rahasia dapat diekstrak!",
             icon="🎨"
         )
