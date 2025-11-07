@@ -140,7 +140,9 @@ def stego_page():
                             except Exception as e:
                                 st.error(f"Terjadi kesalahan: {e}")
                     else:
-                        if not receiver_id:
+                        if receiver_username == current_username:
+                            st.error("Anda tidak dapat mengirim file ke diri sendiri.")
+                        elif not receiver_id:
                             st.error(f"Username '{receiver_username}' tidak ditemukan atau Anda belum mengisi nama penerima.")
                         elif not cover_image_file:
                             st.warning("Harap pilih gambar sampul.")
@@ -254,7 +256,9 @@ def stego_page():
                             except Exception as e:
                                 st.error(f"Terjadi kesalahan: {e}")
                     else:
-                        if not receiver_id_img:
+                        if receiver_username_img == current_username:
+                            st.error("Anda tidak dapat mengirim file ke diri sendiri.")
+                        elif not receiver_id_img:
                             st.error(f"Username '{receiver_username_img}' tidak ditemukan atau Anda belum mengisi nama penerima.")
                         elif not cover_image_file_img:
                             st.warning("Harap pilih gambar sampul.")

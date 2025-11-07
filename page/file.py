@@ -119,7 +119,9 @@ def file_page():
                             except Exception as e:
                                 st.error(f"Terjadi kesalahan saat enkripsi: {e}")
                 else:
-                    if not receiver_id:
+                    if receiver_username == current_username:
+                        st.error("Anda tidak dapat mengirim file ke diri sendiri.")
+                    elif not receiver_id:
                         st.error(f"Username '{receiver_username}' tidak ditemukan atau Anda belum mengisi nama penerima.")
                     elif not uploaded_file:
                         st.warning("Harap pilih file.")
