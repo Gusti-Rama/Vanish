@@ -5,17 +5,13 @@ import numpy as np
 DELIMITER_BYTES = b"###IMG###"
 
 def to_binary(data):
-    """Konversi data string ke biner."""
+   #Konversi data string ke biner
     if isinstance(data, str):
         return ''.join([format(ord(i), '08b') for i in data])
     else:
         raise TypeError("Tipe data tidak didukung.")
 
 def _get_adaptive_indices(image, threshold_percentile):
-    """
-    Fungsi helper untuk Adaptive LSB.
-    analisis gambar trs return daftar index pixel yang kompleks untuk dimasukin data.
-    """
     img_rgb = image.convert('RGB')
     
     # Paksa last bit jadi 0 sebelum analisis.
@@ -115,11 +111,11 @@ def extract_msg(image, threshold_percentile):
     return ""
 
 def bytes_to_binary_string(data_bytes):
-    """Konversi data bytes mentah ke string biner"""
+    #Konversi data bytes mentah ke string biner
     return ''.join(format(byte, '08b') for byte in data_bytes)
 
 def binary_string_to_bytes(binary_string):
-    """Konversi string biner balik ke bytes."""
+    #Konversi string biner balik ke bytes.
     if len(binary_string) % 8 != 0:
         binary_string = binary_string[:-(len(binary_string) % 8)]
     

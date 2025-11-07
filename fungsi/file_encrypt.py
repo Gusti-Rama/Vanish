@@ -3,10 +3,6 @@ from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes
 
 def encrypt_bytes(data_bytes, key):
-    """
-    ambil data sebagai bytes dan kunci, 
-    return IV + Ciphertext sebagai bytes.
-    """
     if isinstance(key, str):
         key = key.encode('utf-8')
     
