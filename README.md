@@ -1,7 +1,11 @@
-# Kriptografi_tugas_akhir
-Tugas Akhir untuk Mata Kuliah Kriptografi
+# Tugas Akhir Kriptografi
+Tugas Akhir untuk Mata Kuliah Kriptografi Kelas
 
-# Soal
+# Anggota Kelompok
+- Reza Rasendriya Adi Putra (123230030)
+- Gusti Rama (123230040)
+
+# Ketentuan
 - Setiap Kelompok terdiri dari 2 mahasiswa membuat suatu aplikasi yang menggunakan algoritma kriptografi
 - Kriteria aplikasi kriptografi sebagai berikut
     - Aplikasi Kriptografi pengirim pesan text/database, file dan gambar

@@ -35,7 +35,7 @@ def stego_page():
     tab_text, tab_image, tab_inbox = st.tabs([
         "🖼️ Kirim Teks-dalam-Gambar", 
         "🖼️+🖼️ Kirim Gambar-dalam-Gambar", 
-        "📥 Stego-Image Masuk"
+        "📥 Steganography-Image Masuk"
     ])
 
     with tab_text:
@@ -85,7 +85,7 @@ def stego_page():
                     receiver_id = next((uid for uid, uname in user_list.items() if uname == receiver_username), None)
 
                     if receiver_id and cover_image_file and secret_message:
-                        with st.spinner("Membuat stego-image (teks) dan mengirim..."):
+                        with st.spinner("Membuat Steganography-image (teks) dan mengirim..."):
                             try:
                                 image = Image.open(cover_image_file)
                                 with io.BytesIO() as output:
@@ -124,8 +124,8 @@ def stego_page():
                                 )
                                 
                                 if success:
-                                    st.success(f"Berhasil! Stego-Image (teks) telah dikirim ke {receiver_username}.")
-                                    stego_container_name = f"stego_TXT_from_{current_username}_{cover_image_file.name}.png"
+                                    st.success(f"Berhasil! Steganography-Image (teks) telah dikirim ke {receiver_username}.")
+                                    stego_container_name = f"Steganograpy_TXT_from_{current_username}_{cover_image_file.name}.png"
                                     st.download_button(
                                         label=f"Download Salinan '{stego_container_name}'",
                                         data=byte_im,
@@ -197,7 +197,7 @@ def stego_page():
                     receiver_id_img = next((uid for uid, uname in user_list_img.items() if uname == receiver_username_img), None)
                     
                     if receiver_id_img and cover_image_file_img and secret_image_file_img:
-                        with st.spinner("Membuat stego-image (gambar) dan mengirim..."):
+                        with st.spinner("Membuat Steganography-image (gambar) dan mengirim..."):
                             try:
                                 image_cover = Image.open(cover_image_file_img)
                                 secret_bytes = secret_image_file_img.getvalue()
@@ -238,8 +238,8 @@ def stego_page():
                                 )
                                 
                                 if success:
-                                    st.success(f"Berhasil! Stego-Image (gambar) telah dikirim ke {receiver_username_img}.")
-                                    stego_container_name = f"stego_IMG_from_{current_username}_{cover_image_file_img.name}.png"
+                                    st.success(f"Berhasil! Steganography-Image (gambar) telah dikirim ke {receiver_username_img}.")
+                                    stego_container_name = f"Steganography_IMG_from_{current_username}_{cover_image_file_img.name}.png"
                                     st.download_button(
                                         label=f"Download Salinan '{stego_container_name}'",
                                         data=byte_im,
@@ -265,7 +265,7 @@ def stego_page():
             st.error(f"Gagal memuat daftar pengguna: {e}")
 
     with tab_inbox:
-        st.header("Stego-Image Masuk")
+        st.header("Steganography-Image Masuk")
         st.warning("Pastikan 'Pengaturan Lanjutan' di atas SAMA PERSIS dengan yang digunakan pengirim.")
 
         try:
@@ -284,16 +284,15 @@ def stego_page():
             if files_df is None:
                 st.error("Gagal mengambil data file.")
             elif files_df.empty:
-                st.info("Tidak ada stego-image yang diterima.")
+                st.info("Tidak ada Steganography-image yang diterima.")
             else:
-                st.info(f"Anda memiliki {len(files_df)} stego-image.")
+                st.info(f"Anda memiliki {len(files_df)} Steganography-image.")
                 
                 for _, row in files_df.iterrows():
                     file_id = row['id_file']
                     category = row['category']
                     
                     try:
-                        # Dekripsi sender_username
                         decrypted_sender_username = db_encrypt.decrypt_db_string(row['sender_username'])
                     except Exception as e:
                         decrypted_sender_username = "[Pengirim Gagal Dekrip]"

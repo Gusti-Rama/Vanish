@@ -42,7 +42,7 @@ def file_page():
                     decrypted_name = db_encrypt.decrypt_db_string(row['username'])
                     decrypted_user_list[row['id_user']] = decrypted_name
                 except Exception: 
-                    pass # Abaikan user yang gagal didekrip
+                    pass
 
             user_list = decrypted_user_list
             
@@ -156,7 +156,6 @@ def file_page():
                     file_id = row['id_file']
                     
                     try:
-                        # Dekripsi sender_username
                         decrypted_sender_username = db_encrypt.decrypt_db_string(row['sender_username'])
                     except Exception as e:
                         decrypted_sender_username = "[Pengirim Gagal Dekrip]"
