@@ -30,8 +30,8 @@ SET time_zone = "+00:00";
 CREATE TABLE `file` (
   `id_file` int(11) NOT NULL,
   `file_data` mediumblob NOT NULL,
-  `file_name` varchar(255) DEFAULT NULL,
-  `file_type` varchar(100) DEFAULT NULL,
+  `file_name` blob DEFAULT NULL,
+  `file_type` blob DEFAULT NULL,
   `uploaded_at` timestamp NULL DEFAULT current_timestamp(),
   `sender_id` int(11) DEFAULT NULL,
   `receiver_id` int(11) DEFAULT NULL,

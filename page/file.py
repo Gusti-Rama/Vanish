@@ -74,13 +74,22 @@ def file_page():
                         with st.spinner("Membaca file dan mengenkripsi..."):
                             try:
                                 file_bytes = uploaded_file.getvalue()
-                                # blowfish
+                                
+                                file_size_mb = len(file_bytes) / (1024 * 1024)
+                                if file_size_mb > 16:
+                                    st.error(f"File terlalu besar ({file_size_mb:.2f} MB). Maksimal 16 MB.")
+                                    st.stop()
+                                
+                                # blowfish enkripsi file content
                                 encrypted_blowfish_bytes = file_encrypt.encrypt_bytes(file_bytes, encryption_key)
                                 
-                                # enkrip DB (Chacha20)
+                                # enkrip DB (Chacha20) untuk file content
                                 encrypted_db_payload = db_encrypt.encrypt_db_data(encrypted_blowfish_bytes)
+                                
+                                # Enkripsi metadata (file_name dan file_type)
                                 encrypted_file_name = db_encrypt.encrypt_db_string(uploaded_file.name)
                                 encrypted_file_type = db_encrypt.encrypt_db_string(uploaded_file.type)
+                                
                                 category = "file"
                                 
                                 success = conn.run_query(
